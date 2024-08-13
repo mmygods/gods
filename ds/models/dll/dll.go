@@ -2,6 +2,8 @@
 
 package dll
 
+import "sync"
+
 // The DllNode struct represents a node in a doubly linked list.
 type DllNode[T any] struct {
 	data T
@@ -14,9 +16,10 @@ type DoublyLinkedList[T any] struct {
 	length int
 	head   *DllNode[T]
 	tail   *DllNode[T]
+	mu     sync.RWMutex
 }
 
-func ZeroValue[T any]() T {
+func zeroValue[T any]() T {
 	var zero T
 	return zero
 }
@@ -31,14 +34,14 @@ func (node DllNode[T]) GetData() T {
 	return node.data
 }
 
-// Append adds an element to the end of the list.
-func (dll *DoublyLinkedList[T]) Append(data T) bool {
+// append adds an element to the end of the list.
+func (dll *DoublyLinkedList[T]) append(data T) bool {
 	node := &DllNode[T]{data: data}
-	return dll.AppendNode(node)
+	return dll.appendNode(node)
 }
 
-// AppendNode adds a node to the end of the list.
-func (dll *DoublyLinkedList[T]) AppendNode(node *DllNode[T]) bool {
+// appendNode adds a node to the end of the list.
+func (dll *DoublyLinkedList[T]) appendNode(node *DllNode[T]) bool {
 	if dll.head == nil {
 		dll.head = node
 		dll.tail = node
@@ -51,14 +54,14 @@ func (dll *DoublyLinkedList[T]) AppendNode(node *DllNode[T]) bool {
 	return true
 }
 
-// Prepend adds a node to the beginning of the list.
-func (dll *DoublyLinkedList[T]) Prepend(data T) bool {
+// prepend adds a node to the beginning of the list.
+func (dll *DoublyLinkedList[T]) prepend(data T) bool {
 	node := &DllNode[T]{data: data}
-	return dll.PrependNode(node)
+	return dll.prependNode(node)
 }
 
-// PrependNode adds a node to the beginning of the list.
-func (dll *DoublyLinkedList[T]) PrependNode(node *DllNode[T]) bool {
+// prependNode adds a node to the beginning of the list.
+func (dll *DoublyLinkedList[T]) prependNode(node *DllNode[T]) bool {
 	if dll.head == nil {
 		dll.head = node
 		dll.tail = node
@@ -71,17 +74,17 @@ func (dll *DoublyLinkedList[T]) PrependNode(node *DllNode[T]) bool {
 	return true
 }
 
-// Pop removes and returns the last element in the list.
-func (dll *DoublyLinkedList[T]) Pop() (T, bool) {
-	if node, ok := dll.PopNode(); ok {
+// pop removes and returns the last element in the list.
+func (dll *DoublyLinkedList[T]) pop() (T, bool) {
+	if node, ok := dll.popNode(); ok {
 		return node.data, true
 	} else {
-		return ZeroValue[T](), false
+		return zeroValue[T](), false
 	}
 }
 
-// PopNode removes and returns the last node in the list.
-func (dll *DoublyLinkedList[T]) PopNode() (*DllNode[T], bool) {
+// popNode removes and returns the last node in the list.
+func (dll *DoublyLinkedList[T]) popNode() (*DllNode[T], bool) {
 	if dll.head == nil {
 		return nil, false
 	}
@@ -99,18 +102,18 @@ func (dll *DoublyLinkedList[T]) PopNode() (*DllNode[T], bool) {
 	return node, true
 }
 
-// PopFirst removes and returns the first element in the list.
-func (dll *DoublyLinkedList[T]) PopFirst() (T, bool) {
-	if node, ok := dll.PopFirstNode(); ok {
+// popFirst removes and returns the first element in the list.
+func (dll *DoublyLinkedList[T]) popFirst() (T, bool) {
+	if node, ok := dll.popFirstNode(); ok {
 		return node.data, true
 	} else {
-		return ZeroValue[T](), false
+		return zeroValue[T](), false
 	}
 
 }
 
-// PopFirstNode removes and returns the first element in the list.
-func (dll *DoublyLinkedList[T]) PopFirstNode() (*DllNode[T], bool) {
+// popFirstNode removes and returns the first element in the list.
+func (dll *DoublyLinkedList[T]) popFirstNode() (*DllNode[T], bool) {
 	if dll.head == nil {
 		return nil, false
 	}
@@ -128,8 +131,8 @@ func (dll *DoublyLinkedList[T]) PopFirstNode() (*DllNode[T], bool) {
 	return node, true
 }
 
-// GetNode returns the node at the specified index.
-func (dll *DoublyLinkedList[T]) GetNode(index int) *DllNode[T] {
+// getNode returns the node at the specified index.
+func (dll *DoublyLinkedList[T]) getNode(index int) *DllNode[T] {
 	if index < 0 || index >= dll.length {
 		return nil
 	}
@@ -140,18 +143,18 @@ func (dll *DoublyLinkedList[T]) GetNode(index int) *DllNode[T] {
 	return node
 }
 
-// Get returns the element at the specified index.
-func (dll *DoublyLinkedList[T]) Get(index int) (T, bool) {
-	node := dll.GetNode(index)
+// get returns the element at the specified index.
+func (dll *DoublyLinkedList[T]) get(index int) (T, bool) {
+	node := dll.getNode(index)
 	if node == nil {
-		return ZeroValue[T](), false
+		return zeroValue[T](), false
 	}
 	return node.data, true
 }
 
-// Set sets the element at the specified index.
-func (dll *DoublyLinkedList[T]) Set(index int, data T) bool {
-	node := dll.GetNode(index)
+// set sets the element at the specified index.
+func (dll *DoublyLinkedList[T]) set(index int, data T) bool {
+	node := dll.getNode(index)
 	if node == nil {
 		return false
 	}
@@ -159,19 +162,19 @@ func (dll *DoublyLinkedList[T]) Set(index int, data T) bool {
 	return true
 }
 
-// Insert adds an element at the specified index.
-func (dll *DoublyLinkedList[T]) Insert(index int, data T) bool {
+// insert adds an element at the specified index.
+func (dll *DoublyLinkedList[T]) insert(index int, data T) bool {
 	if index < 0 || index > dll.length {
 		return false
 	}
 	if index == 0 {
-		return dll.Prepend(data)
+		return dll.prepend(data)
 	}
 	if index == dll.length {
-		return dll.Append(data)
+		return dll.append(data)
 	}
 	node := &DllNode[T]{data: data}
-	prevNode := dll.GetNode(index - 1)
+	prevNode := dll.getNode(index - 1)
 	nextNode := prevNode.next
 	prevNode.next = node
 	node.prev = prevNode
@@ -181,16 +184,16 @@ func (dll *DoublyLinkedList[T]) Insert(index int, data T) bool {
 	return true
 }
 
-// Delete removes the element at the specified index.
-func (dll *DoublyLinkedList[T]) Delete(index int) bool {
-	node := dll.GetNode(index)
+// delete removes the element at the specified index.
+func (dll *DoublyLinkedList[T]) delete(index int) bool {
+	node := dll.getNode(index)
 	if node == nil {
 		return false
 	}
-	return dll.DeleteNode(node)
+	return dll.deleteNode(node)
 }
 
-func (dll *DoublyLinkedList[T]) DeleteNode(node *DllNode[T]) bool {
+func (dll *DoublyLinkedList[T]) deleteNode(node *DllNode[T]) bool {
 	if node == nil {
 		return false
 	}
@@ -198,11 +201,11 @@ func (dll *DoublyLinkedList[T]) DeleteNode(node *DllNode[T]) bool {
 		return false
 	}
 	if node == dll.head {
-		_, ok := dll.PopFirst()
+		_, ok := dll.popFirst()
 		return ok
 	}
 	if node == dll.tail {
-		_, ok := dll.Pop()
+		_, ok := dll.pop()
 		return ok
 	}
 	prevNode := node.prev
@@ -215,18 +218,110 @@ func (dll *DoublyLinkedList[T]) DeleteNode(node *DllNode[T]) bool {
 	return true
 }
 
-func (dll *DoublyLinkedList[T]) IsEmpty() bool {
+func (dll *DoublyLinkedList[T]) isEmpty() bool {
 	return dll.length == 0
 }
 
-func (dll *DoublyLinkedList[T]) Length() int {
+func (dll *DoublyLinkedList[T]) length_internal() int {
 	return dll.length
 }
 
-// Range returns a channel that iterates over the elements in the list.
+// lock locks the mutex for writing.
+func (dll *DoublyLinkedList[T]) lock() {
+	dll.mu.Lock()
+}
+
+// unlock unlocks the mutex for writing.
+func (dll *DoublyLinkedList[T]) unlock() {
+	dll.mu.Unlock()
+}
+
+// rLock locks the mutex for reading.
+func (dll *DoublyLinkedList[T]) rLock() {
+	dll.mu.RLock()
+}
+
+// rUnlock unlocks the mutex for reading.
+func (dll *DoublyLinkedList[T]) rUnlock() {
+	dll.mu.RUnlock()
+}
+
+// Append adds an element to the end of the list in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) Append(data T) bool {
+	dll.lock()
+	defer dll.unlock()
+	return dll.append(data)
+}
+
+// Prepend adds a node to the beginning of the list in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) Prepend(data T) bool {
+	dll.lock()
+	defer dll.unlock()
+	return dll.prepend(data)
+}
+
+// Pop removes and returns the last element in the list in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) Pop() (T, bool) {
+	dll.lock()
+	defer dll.unlock()
+	return dll.pop()
+}
+
+// PopFirst removes and returns the first element in the list in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) PopFirst() (T, bool) {
+	dll.lock()
+	defer dll.unlock()
+	return dll.popFirst()
+}
+
+// Get returns the element at the specified index in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) Get(index int) (T, bool) {
+	dll.rLock()
+	defer dll.rUnlock()
+	return dll.get(index)
+}
+
+// Set sets the element at the specified index in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) Set(index int, data T) bool {
+	dll.lock()
+	defer dll.unlock()
+	return dll.set(index, data)
+}
+
+// Insert adds an element at the specified index in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) Insert(index int, data T) bool {
+	dll.lock()
+	defer dll.unlock()
+	return dll.insert(index, data)
+}
+
+// Delete removes the element at the specified index in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) Delete(index int) bool {
+	dll.lock()
+	defer dll.unlock()
+	return dll.delete(index)
+}
+
+// IsEmpty checks if the list is empty in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) IsEmpty() bool {
+	dll.rLock()
+	defer dll.rUnlock()
+	return dll.isEmpty()
+}
+
+// Length returns the length of the list in a concurrency-safe manner.
+func (dll *DoublyLinkedList[T]) Length() int {
+	dll.rLock()
+	defer dll.rUnlock()
+	return dll.length_internal()
+}
+
+// Range returns a channel that iterates over the elements in the list in a concurrency-safe manner.
 func (dll *DoublyLinkedList[T]) Range() <-chan T {
+	dll.rLock()
 	ch := make(chan T)
 	go func() {
+		defer dll.rUnlock()
 		node := dll.head
 		for node != nil {
 			ch <- node.data
@@ -235,4 +330,28 @@ func (dll *DoublyLinkedList[T]) Range() <-chan T {
 		close(ch)
 	}()
 	return ch
+}
+
+func (dll *DoublyLinkedList[T]) GetNode(index int) *DllNode[T] {
+	dll.rLock()
+	defer dll.rUnlock()
+	return dll.getNode(index)
+}
+
+func (dll *DoublyLinkedList[T]) DeleteNode(node *DllNode[T]) bool {
+	dll.lock()
+	defer dll.unlock()
+	return dll.deleteNode(node)
+}
+
+func (dll *DoublyLinkedList[T]) AppendNode(node *DllNode[T]) bool {
+	dll.lock()
+	defer dll.unlock()
+	return dll.appendNode(node)
+}
+
+func (dll *DoublyLinkedList[T]) PrependNode(node *DllNode[T]) bool {
+	dll.lock()
+	defer dll.unlock()
+	return dll.prependNode(node)
 }

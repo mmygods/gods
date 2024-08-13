@@ -236,3 +236,34 @@ func TestDoublyLinkedListInsertAtIndex(t *testing.T) {
 		})
 	}
 }
+
+func TestListRange(t *testing.T) {
+	tests := []struct {
+		name     string
+		elements []int
+	}{
+		{
+			name:     "Empty list",
+			elements: []int{},
+		},
+		{
+			name:     "Non-empty list",
+			elements: []int{1, 2, 3},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			list := &dll.DoublyLinkedList[int]{}
+			for _, element := range test.elements {
+				list.Append(element)
+			}
+			i := 0
+			for data := range list.Range() {
+				if data != test.elements[i] {
+					t.Errorf("Test failed: %s", test.name)
+				}
+				i++
+			}
+		})
+	}
+}
